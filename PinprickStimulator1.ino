@@ -29,7 +29,6 @@ const int minwalk = 100; // How many steps at least to be taken by MotorB
 
 int Position = 0; // MotorB Position
 int walk = 0;
-int MotorAon = 0;
 const int maxPosition = 9 * stepsPerRevolution; // ca. 0.3cm/Turn, depends on hand length
 
 //Initialize Motors with Stepper.h-Library
@@ -71,16 +70,18 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-// Program 1: Single Trials with Rating
 if(digitalRead(A0)==1 && digitalRead(A3)==1){
   digitalWrite(2, HIGH); // enable MotorA
   MotorA.setSpeed(100);
   while(digitalRead(12)==1) MotorA.step(1); // compensate resistance, start at zero
-  MotorA.step(stepsPerRevolution); // negative Steps, because the rod lays on the tubes left side
+  delay(500);
+  MotorA.step(stepsPerRevolution/2); // negative Steps, because the rod lays on the tubes left side
+  digitalWrite(A4, HIGH);
+  delay(10);
+  digitalWrite(A4, LOW);
+  MotorA.step(stepsPerRevolution/2);
   while(digitalRead(12)==1) MotorA.step(1); // compensate turn resistance, to do exactly one turn
   digitalWrite(2, LOW); // disable MotorA
-
-  delay(1000);
 
   MotorB.setSpeed(200); // faster results in less torque
   walk = random(0-Position, maxPosition-Position); // Stimulator stays in defined Area(0-maxPosition), if MotorB Positon was reseted (e.g. to Knuckle-Line)
@@ -93,48 +94,15 @@ if(digitalRead(A0)==1 && digitalRead(A3)==1){
   digitalWrite(3, LOW); // disable MotorB
 
 }
-/*
-// Program 2: Offset-Response
-if(digitalRead(A0)==1 && digitalRead(A3)==1){
-  for(int i=0; i<=200; i++){
-    digitalWrite(2, HIGH); // enable MotorA
-    MotorA.setSpeed(100);
-    while(digitalRead(12)==1) MotorA.step(1); // compensate resistance, start at zero
-    MotorA.step(stepsPerRevolution); // negative Steps, because the rod lays on the tubes left side
-    while(digitalRead(12)==1) MotorA.step(1); // compensate turn resistance, to do exactly one turn
-    digitalWrite(2, LOW); // disable MotorA
 
-    delay(1000);
-
-    MotorB.setSpeed(200); // faster results in less torque
-    walk = random(0-Position, maxPosition-Position); // Stimulator stays in defined Area(0-maxPosition), if MotorB Positon was reseted (e.g. to Knuckle-Line)
-    while(abs(walk)<minwalk){ // walk has to exceed minwalk
-      walk = random(0-Position, maxPosition-Position);
-    }
-    Position += walk;
-    digitalWrite(3, HIGH); // enable MotorB
-    MotorB.step(walk);
-    digitalWrite(3, LOW); // disable MotorB
-
-    delay(5000+random(1000,3000))
-  }
-}
-*/
-
-if(digitalRead(A0)==1 && digitalRead(A2)==1 && MotorAon==0){ // get MotorA in Zero Position, Trigger #40
+if(digitalRead(A0)==1 && digitalRead(A2)==1){ // get MotorA in Zero Position, Trigger #40
   while(digitalRead(12)==1){
     digitalWrite(2, HIGH); // enable MotorA
     MotorA.setSpeed(100);
     MotorA.step(1);
+    digitalWrite(2, LOW); // disable MotorA
   }
-  MotorAon = 1;
-}
-
-while(MotorAon==1){
-  MotorA.step(stepsPerRevolution);
-  delay(2000);
-  if(digitalRead(A0)==1 && digitalRead(A2)==1){
-    MotorAon = 0;
+  if(digitalRead(A0)==1 && digitalRead(A2)==1){ // get MotorA in Zero Position, Trigger #40
     digitalWrite(2, LOW); // disable MotorA
   }
 }
@@ -144,7 +112,7 @@ if(digitalRead(A0)==1 && digitalRead(A1)==1){
   MotorB.setSpeed(200);
   digitalWrite(3, HIGH); // enable MotorB
   MotorB.step(stepsPerRevolution);
-  MotorB.step(-stepsPerRevolution);
+  MotorB.step(stepsPerRevolution);
   digitalWrite(3, LOW); // disable MotorB
 }
 
