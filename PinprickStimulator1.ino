@@ -30,7 +30,6 @@ const int maxPosition = 9 * One_Turn; // ca. 0.3cm/Turn, 0.2s/Turn(300RPM)--> ma
 
 int Position = 0; // MotorB Position
 int walk = 0;
-int MotorAon = 0;
 int ASpeed = 50;
 int BSpeed = 300;
 float c = 0.5; // Acceleration Factor MotorB
@@ -163,23 +162,18 @@ if(digitalRead(A0)==1 && digitalRead(A4)!=1 && digitalRead(A5)!=1){ //#32
 }
 
 
-if(digitalRead(A0)==1 && digitalRead(A4)==1 && digitalRead(A5)!=1 && MotorAon==0){ // get MotorA in Zero Position, Trigger #40
-  while(digitalRead(12)==1){
-    digitalWrite(2, HIGH); // enable MotorA
-    MotorA.setSpeed(ASpeed);
-    MotorA.step(1);
-  }
-  MotorAon = 1;
-}
+if(digitalRead(A0)==1 && digitalRead(A4)==1 && digitalRead(A5)!=1){ // get MotorA in Zero Position, Trigger #40
+  HalfStepper MotorA(One_Turn, 4, 5, 6, 7);
 
-
-if(digitalRead(A0)==1 && digitalRead(A4)==1 && digitalRead(A5)!=1 && MotorAon==1){ // get MotorA in Zero Position, Trigger #40
-  MotorAon = 0;
   digitalWrite(2, HIGH); // enable MotorA
   MotorA.setSpeed(ASpeed);
-  MotorA.step(One_Turn/2);
+  while(digitalRead(12)==1) MotorA.step(1); // compensate turn resistance, to do exactly one turn
+  MotorA.step(One_Turn);
+  digitalWrite(2, LOW);
   delay(2000);
-  MotorA.step(One_Turn/2);
+  digitalWrite(2, HIGH);
+  MotorA.step(One_Turn);
+  while(digitalRead(12)==1) MotorA.step(1); // compensate turn resistance, to do exactly one turn
   digitalWrite(2, LOW); // disable MotorA
 }
 
@@ -188,9 +182,9 @@ if(digitalRead(A0)==1 && digitalRead(A4)!=1 && digitalRead(A5)==1){ // #48 Motor
   Position = 0;
   MotorB.setSpeed(BSpeed);
   digitalWrite(3, HIGH); // enable MotorB
-  MotorB.step(2*One_Turn);
-  delay(50);
-  MotorB.step(-2*One_Turn);
+  MotorB.step(maxPosition);
+  delay(200);
+  MotorB.step(-maxPosition);
   digitalWrite(3, LOW); // disable MotorB
 }
 
