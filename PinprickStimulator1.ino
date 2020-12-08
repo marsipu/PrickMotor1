@@ -22,6 +22,7 @@
 
 
 #include <Stepper.h>
+#include <HalfStepper.h>
 
 const int One_Turn = 200; // How many steps are one round (Motor Specification)
 const int minwalk = 200; // How many steps at least to be taken by MotorB
@@ -44,6 +45,7 @@ void setup() {
   pinMode(2, OUTPUT); // enable MotorA
   pinMode(3, OUTPUT); // enable MotorB
   pinMode(A0, INPUT); // Pinprick-Command
+  pinMode(A1, INPUT); // enable HalfStep
   pinMode(A2, OUTPUT); // Offset-Feedback
   pinMode(A3, OUTPUT); // Feedback Velo
   pinMode(A4, INPUT); // MotorA Zero-Position
@@ -66,43 +68,83 @@ void loop() {
 
 if(digitalRead(A0)==1 && digitalRead(A4)!=1 && digitalRead(A5)!=1){ //#32
 
-    delay(random(50,1000)); //1s
+    if(digitalRead(A1)==1){ //enable Half-Steps
+      HalfStepper MotorA(One_Turn, 4, 5, 6, 7);
 
-    MotorA.setSpeed(ASpeed);
-    digitalWrite(A2, HIGH);
-    delay(10);
-    digitalWrite(A2, LOW);
+      delay(random(50,1000)); //1s
 
-    digitalWrite(2, HIGH); // enable MotorA
-    while(digitalRead(12)==1) MotorA.step(1); // compensate resistance, assume pull-back(push would result in extra turn)
-    MotorA.step(One_Turn/2); //0.6s
+      MotorA.setSpeed(ASpeed);
+      digitalWrite(A2, HIGH);
+      delay(10);
+      digitalWrite(A2, LOW);
 
-    digitalWrite(2, LOW); // disable MotorA
+      digitalWrite(2, HIGH); // enable MotorA
+      while(digitalRead(12)==1) MotorA.step(1); // compensate resistance, assume pull-back(push would result in extra turn)
+      /*while(c<1){
+        MotorA.setSpeed(ASpeed*c);
+        MotorA.step(One_Turn/10);
+        c+=0.1;
+      }*/
+      MotorA.step(One_Turn); //0.6s
+      /*while(c>0.5){
+        MotorA.setSpeed(ASpeed*c);
+        MotorA.step(One_Turn/10);
+        c-=0.1;
+      }*/
+      digitalWrite(2, LOW); // disable MotorA
 
-    delay(2000); //2s
+      delay(2000); //2s
 
-    digitalWrite(A3, HIGH);
-    delay(10);
-    digitalWrite(A3, LOW);
+      MotorA.setSpeed(ASpeed);
+      digitalWrite(A3, HIGH);
+      delay(10);
+      digitalWrite(A3, LOW);
 
-    digitalWrite(2, HIGH); // enable MotorA
-    MotorA.step(One_Turn/2); //0.6s
-    while(digitalRead(12)==1) MotorA.step(1); // compensate turn resistance, to do exactly one turn
-    digitalWrite(2, LOW); // disable MotorA
+      digitalWrite(2, HIGH); // enable MotorA
+      MotorA.step(One_Turn); //0.6s
+      while(digitalRead(12)==1) MotorA.step(1); // compensate turn resistance, to do exactly one turn
+      digitalWrite(2, LOW); // disable MotorA
 
-    delay(1000); //1s
+      delay(1000); //1s
+    }else{
+      Stepper MotorA(One_Turn, 4, 5, 6, 7);
+      delay(random(50,1000)); //1s
 
+      MotorA.setSpeed(ASpeed);
+      digitalWrite(A2, HIGH);
+      delay(10);
+      digitalWrite(A2, LOW);
+
+      digitalWrite(2, HIGH); // enable MotorA
+      while(digitalRead(12)==1) MotorA.step(1); // compensate resistance, assume pull-back(push would result in extra turn)
+      MotorA.step(One_Turn/2); //0.6s
+
+      digitalWrite(2, LOW); // disable MotorA
+
+      delay(2000); //2s
+
+      digitalWrite(A3, HIGH);
+      delay(10);
+      digitalWrite(A3, LOW);
+
+      digitalWrite(2, HIGH); // enable MotorA
+      MotorA.step(One_Turn/2); //0.6s
+      while(digitalRead(12)==1) MotorA.step(1); // compensate turn resistance, to do exactly one turn
+      digitalWrite(2, LOW); // disable MotorA
+
+      delay(1000); //1s
+    }
     walk = random(0-Position, maxPosition-Position); // Stimulator stays in defined Area(0-maxPosition), if MotorB Positon was reseted (e.g. to Knuckle-Line)
     while(abs(walk)<minwalk){ // walk has to exceed minwalk
       walk = random(0-Position, maxPosition-Position);
     }
     Position += walk;
+
     digitalWrite(3, HIGH); // enable MotorB
 
     while(c<1){
       MotorB.setSpeed(BSpeed*c);
       MotorB.step(walk/20);
-      Serial.println(c);
       c+=0.1;
     }
 
@@ -112,7 +154,6 @@ if(digitalRead(A0)==1 && digitalRead(A4)!=1 && digitalRead(A5)!=1){ //#32
     while(c>0.5){
       MotorB.setSpeed(BSpeed*c);
       MotorB.step(walk/20);
-      Serial.println(c);
       c-=0.1;
     }
 
