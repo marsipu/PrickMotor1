@@ -8,35 +8,35 @@
  *
  * Trigger-Channels:
  * A0 - Trigger Ch6 Output
- * A1 - Trigger Ch1 Output
  * A2 - Trigger Ch2 Input
  * A3 - Trigger Ch3 Input
  * A4 - Trigger Ch4 Output
  * A5 - Trigger Ch5 Output
  *
  * Trigger #32(6)(A0) - Reserved for Pinprick-Commands, no Command without it
- * Trigger #36(6+1)(A0+A1) - Start Trial
- * Trigger #40(6+4)(A0+A4) - MotorA goes to Zero-Position
+ * Trigger #40(6+4)(A0+A4) - Start Trial
+ * Trigger #33(6+1)(A0+A1) - MotorA goes to Zero-Position
  * Trigger #48(6+5)(A0+A5) - MotorB Reset Position
- *
+ * Define Prickstim Trigger for MotorA/MotorB-Knob: 1975 in prickstim File
  */
 
 
 #include <Stepper.h>
 
-const int stepsPerRevolution = 200; // How many steps are one round (Motor Specification)
-const int minwalk = 100; // How many steps at least to be taken by MotorB
-const int maxPosition = 9 * stepsPerRevolution; // ca. 0.3cm/Turn, depends on hand length
+const int One_Turn = 200; // How many steps are one round (Motor Specification)
+const int minwalk = 200; // How many steps at least to be taken by MotorB
+const int maxPosition = 9 * One_Turn; // ca. 0.3cm/Turn, 0.2s/Turn(300RPM)--> max. 1.8 s/2.7cm
 
 int Position = 0; // MotorB Position
 int walk = 0;
 int MotorAon = 0;
-int changevelo = 0;
-
+int ASpeed = 50;
+int BSpeed = 300;
+float c = 0.5; // Acceleration Factor MotorB
 
 //Initialize Motors with Stepper.h-Library
-Stepper MotorA(stepsPerRevolution, 4, 5, 6, 7);
-Stepper MotorB(stepsPerRevolution, 8, 9, 10, 11);
+Stepper MotorA(One_Turn, 4, 5, 6, 7);
+Stepper MotorB(One_Turn, 8, 9, 10, 11);
 
 void setup() {
   // put your setup code here, to run once:
@@ -44,7 +44,6 @@ void setup() {
   pinMode(2, OUTPUT); // enable MotorA
   pinMode(3, OUTPUT); // enable MotorB
   pinMode(A0, INPUT); // Pinprick-Command
-  pinMode(A1, INPUT); // Start Trial
   pinMode(A2, OUTPUT); // Offset-Feedback
   pinMode(A3, OUTPUT); // Feedback Velo
   pinMode(A4, INPUT); // MotorA Zero-Position
@@ -65,116 +64,92 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-if(digitalRead(A0)==1 && digitalRead(A1)==1 && digitalRead(A4)==1 && digitalRead(A5)!=1){ //#41
+if(digitalRead(A0)==1 && digitalRead(A4)!=1 && digitalRead(A5)!=1){ //#32
 
-    delay(random(500,1000));
+    delay(random(50,1000)); //1s
 
-    if(changevelo==0){
-      MotorA.setSpeed(139);
-      digitalWrite(A2, HIGH);
-      delay(10);
-      digitalWrite(A2, LOW);
-      changevelo=1;
-    }else{
-      MotorA.setSpeed(149);
-      digitalWrite(A3, HIGH);
-      delay(10);
-      digitalWrite(A3, LOW);
-      changevelo=0;
-    }
-
-    digitalWrite(2, HIGH); // enable MotorA
-    while(digitalRead(12)==1) MotorA.step(1); // compensate resistance, start at zero
-    MotorA.step(stepsPerRevolution/2);
-    digitalWrite(2, LOW); // disable MotorA
-
-    delay(2000 + random(1000));
-
-    digitalWrite(A2, HIGH); //Trigger Offset
-    digitalWrite(A3, HIGH);
+    MotorA.setSpeed(ASpeed);
+    digitalWrite(A2, HIGH);
     delay(10);
     digitalWrite(A2, LOW);
+
+    digitalWrite(2, HIGH); // enable MotorA
+    while(digitalRead(12)==1) MotorA.step(1); // compensate resistance, assume pull-back(push would result in extra turn)
+    MotorA.step(One_Turn/2); //0.6s
+
+    digitalWrite(2, LOW); // disable MotorA
+
+    delay(2000); //2s
+
+    digitalWrite(A3, HIGH);
+    delay(10);
     digitalWrite(A3, LOW);
 
     digitalWrite(2, HIGH); // enable MotorA
-    MotorA.step(stepsPerRevolution/2); //Offset Response
+    MotorA.step(One_Turn/2); //0.6s
     while(digitalRead(12)==1) MotorA.step(1); // compensate turn resistance, to do exactly one turn
     digitalWrite(2, LOW); // disable MotorA
 
-    delay(3000);
+    delay(1000); //1s
 
-    MotorB.setSpeed(200); // faster results in less torque
     walk = random(0-Position, maxPosition-Position); // Stimulator stays in defined Area(0-maxPosition), if MotorB Positon was reseted (e.g. to Knuckle-Line)
     while(abs(walk)<minwalk){ // walk has to exceed minwalk
       walk = random(0-Position, maxPosition-Position);
     }
     Position += walk;
     digitalWrite(3, HIGH); // enable MotorB
-    MotorB.step(walk);
+
+    while(c<1){
+      MotorB.setSpeed(BSpeed*c);
+      MotorB.step(walk/20);
+      Serial.println(c);
+      c+=0.1;
+    }
+
+    MotorB.setSpeed(BSpeed); // faster results in less torque
+    MotorB.step(walk/2); // 0.9s.
+
+    while(c>0.5){
+      MotorB.setSpeed(BSpeed*c);
+      MotorB.step(walk/20);
+      Serial.println(c);
+      c-=0.1;
+    }
+
     digitalWrite(3, LOW); // disable MotorB
 
-
+    // total ~8s, rating 5s
 }
 
 
-if(digitalRead(A0)==1 && digitalRead(A4)==1 && digitalRead(A1)!=1 && digitalRead(A5)!=1 && MotorAon==0){ // get MotorA in Zero Position, Trigger #40
+if(digitalRead(A0)==1 && digitalRead(A4)==1 && digitalRead(A5)!=1 && MotorAon==0){ // get MotorA in Zero Position, Trigger #40
   while(digitalRead(12)==1){
     digitalWrite(2, HIGH); // enable MotorA
-    MotorA.setSpeed(100);
+    MotorA.setSpeed(ASpeed);
     MotorA.step(1);
   }
   MotorAon = 1;
 }
 
 
-if(digitalRead(A0)==1 && digitalRead(A4)==1 && digitalRead(A1)!=1 && digitalRead(A5)!=1 && MotorAon==1){ // get MotorA in Zero Position, Trigger #40
+if(digitalRead(A0)==1 && digitalRead(A4)==1 && digitalRead(A5)!=1 && MotorAon==1){ // get MotorA in Zero Position, Trigger #40
   MotorAon = 0;
   digitalWrite(2, HIGH); // enable MotorA
-  MotorA.step(stepsPerRevolution);
+  MotorA.setSpeed(ASpeed);
+  MotorA.step(One_Turn/2);
+  delay(2000);
+  MotorA.step(One_Turn/2);
   digitalWrite(2, LOW); // disable MotorA
 }
 
 
-if(digitalRead(A0)==1 && digitalRead(A5)==1 && digitalRead(A1)!=1 && digitalRead(A4)!=1){ // #48
-  Position = 0; // MotorB Reset Position, Trigger #48
-  MotorB.setSpeed(200);
+if(digitalRead(A0)==1 && digitalRead(A4)!=1 && digitalRead(A5)==1){ // #48 MotorB Reset Position
+  Position = 0;
+  MotorB.setSpeed(BSpeed);
   digitalWrite(3, HIGH); // enable MotorB
-  MotorB.step(stepsPerRevolution);
-  MotorB.step(-stepsPerRevolution);
-  digitalWrite(3, LOW); // disable MotorB
-}
-
-if(digitalRead(A0)==1 && digitalRead(A5)==1 && digitalRead(A1)==1 && digitalRead(A4)!=1){ // #49
-  delay(100);
-
-  Position = 0; // MotorB Reset Position, Trigger #48
-  MotorA.setSpeed(139);
-  digitalWrite(2, HIGH); // enable MotorA
-  digitalWrite(A2, HIGH);
-  delay(10);
-  digitalWrite(A2, LOW);
-  MotorA.step(stepsPerRevolution);
-  digitalWrite(2, LOW); // disable MotorA
-  delay(1000);
-
-  MotorA.setSpeed(149);
-  digitalWrite(2, HIGH); // enable MotorA
-  digitalWrite(A3, HIGH);
-  delay(10);
-  digitalWrite(A3, LOW);
-  MotorA.step(stepsPerRevolution);
-  digitalWrite(2, LOW); // disable MotorA
-  delay(1000);
-
-  MotorB.setSpeed(200);
-  digitalWrite(3, HIGH); // enable MotorB
-  digitalWrite(A2, HIGH); //Trigger Offset
-  digitalWrite(A3, HIGH);
-  delay(10);
-  digitalWrite(A2, LOW);
-  digitalWrite(A3, LOW);
-  MotorB.step(stepsPerRevolution);
-  MotorB.step(-stepsPerRevolution);
+  MotorB.step(2*One_Turn);
+  delay(50);
+  MotorB.step(-2*One_Turn);
   digitalWrite(3, LOW); // disable MotorB
 }
 
