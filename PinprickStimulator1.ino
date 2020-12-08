@@ -65,58 +65,18 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-// Program 1: 1s Trials, Duration:
-if(digitalRead(A0)==1 && digitalRead(A1)==1 && digitalRead(A4)!=1 && digitalRead(A5)!=1){ // #33
-
-  delay(random(1000));
-
-  if(changevelo==0){
-    MotorA.setSpeed(137);
-    digitalWrite(A2, HIGH);
-    delay(10);
-    digitalWrite(A2, LOW);
-    changevelo=1;
-  }else{
-    MotorA.setSpeed(147);
-    digitalWrite(A3, HIGH);
-    delay(10);
-    digitalWrite(A3, LOW);
-    changevelo=0;
-  }
-
-  digitalWrite(2, HIGH); // enable MotorA
-  while(digitalRead(12)==1) MotorA.step(1); // compensate resistance, start at zero
-  MotorA.step(stepsPerRevolution); // negative Steps, because the rod lays on the tubes left side
-  while(digitalRead(12)==1) MotorA.step(1); // compensate turn resistance, to do exactly one turn
-  digitalWrite(2, LOW); // disable MotorA
-
-  delay(3000);
-
-  MotorB.setSpeed(200); // faster results in less torque
-  walk = random(0-Position, maxPosition-Position); // Stimulator stays in defined Area(0-maxPosition), if MotorB Positon was reseted (e.g. to Knuckle-Line)
-  while(abs(walk)<minwalk){ // walk has to exceed minwalk
-    walk = random(0-Position, maxPosition-Position);
-  }
-  Position += walk;
-  digitalWrite(3, HIGH); // enable MotorB
-  MotorB.step(walk);
-  digitalWrite(3, LOW); // disable MotorB
-
-}
-
-// Program 2: Offset Response
 if(digitalRead(A0)==1 && digitalRead(A1)==1 && digitalRead(A4)==1 && digitalRead(A5)!=1){ //#41
 
-    delay(random(1000));
+    delay(random(500,1000));
 
     if(changevelo==0){
-      MotorA.setSpeed(137);
+      MotorA.setSpeed(139);
       digitalWrite(A2, HIGH);
       delay(10);
       digitalWrite(A2, LOW);
       changevelo=1;
     }else{
-      MotorA.setSpeed(147);
+      MotorA.setSpeed(149);
       digitalWrite(A3, HIGH);
       delay(10);
       digitalWrite(A3, LOW);
@@ -124,16 +84,18 @@ if(digitalRead(A0)==1 && digitalRead(A1)==1 && digitalRead(A4)==1 && digitalRead
     }
 
     digitalWrite(2, HIGH); // enable MotorA
-
     while(digitalRead(12)==1) MotorA.step(1); // compensate resistance, start at zero
     MotorA.step(stepsPerRevolution/2);
     digitalWrite(2, LOW); // disable MotorA
+
     delay(2000 + random(1000));
+
     digitalWrite(A2, HIGH); //Trigger Offset
     digitalWrite(A3, HIGH);
     delay(10);
     digitalWrite(A2, LOW);
     digitalWrite(A3, LOW);
+
     digitalWrite(2, HIGH); // enable MotorA
     MotorA.step(stepsPerRevolution/2); //Offset Response
     while(digitalRead(12)==1) MotorA.step(1); // compensate turn resistance, to do exactly one turn
@@ -183,20 +145,36 @@ if(digitalRead(A0)==1 && digitalRead(A5)==1 && digitalRead(A1)!=1 && digitalRead
 }
 
 if(digitalRead(A0)==1 && digitalRead(A5)==1 && digitalRead(A1)==1 && digitalRead(A4)!=1){ // #49
+  delay(100);
+
   Position = 0; // MotorB Reset Position, Trigger #48
-  MotorA.setSpeed(137);
+  MotorA.setSpeed(139);
   digitalWrite(2, HIGH); // enable MotorA
+  digitalWrite(A2, HIGH);
+  delay(10);
+  digitalWrite(A2, LOW);
   MotorA.step(stepsPerRevolution);
   digitalWrite(2, LOW); // disable MotorA
   delay(1000);
-  MotorA.setSpeed(147);
+
+  MotorA.setSpeed(149);
   digitalWrite(2, HIGH); // enable MotorA
+  digitalWrite(A3, HIGH);
+  delay(10);
+  digitalWrite(A3, LOW);
   MotorA.step(stepsPerRevolution);
   digitalWrite(2, LOW); // disable MotorA
   delay(1000);
+
   MotorB.setSpeed(200);
   digitalWrite(3, HIGH); // enable MotorB
+  digitalWrite(A2, HIGH); //Trigger Offset
+  digitalWrite(A3, HIGH);
+  delay(10);
+  digitalWrite(A2, LOW);
+  digitalWrite(A3, LOW);
   MotorB.step(stepsPerRevolution);
+  MotorB.step(-stepsPerRevolution);
   digitalWrite(3, LOW); // disable MotorB
 }
 
